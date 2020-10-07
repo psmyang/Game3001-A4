@@ -8,7 +8,7 @@
 
 #include "Tile.h"
 #include "Player.h"
-#include "Enemy.h"
+#include "BaseEnemy.h"
 #include "CloseCombatEnemy.h"
 #include "RangedCombatEnemy.h"
 #include "Bullet.h"
@@ -80,6 +80,5 @@ private:
 	Sprite* m_pGameStart;
 	//Label* m_pStartLabel;
 	Label* m_pNameLabel;
-	
 };
 #endif

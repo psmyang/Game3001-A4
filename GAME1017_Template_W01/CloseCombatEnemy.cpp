@@ -15,7 +15,7 @@ bool CloseCombatEnemy::Attack()
 	SDL_Rect src = { 96, 343, 96,96 };
 	SDL_FRect dest = { GetDstP()->x - 32, GetDstP()->y - 32, GetDstP()->w + 64, GetDstP()->h + 64 };
 	SDL_RenderCopyExF(m_pRend, m_pText, &src, &dest, 0, 0, static_cast<SDL_RendererFlip>(1));
-	SOMA::PlaySound("Explosion", 0, 5);
+	SOMA::PlaySound("Boom", 0, 5);
 	return true;
 }
 

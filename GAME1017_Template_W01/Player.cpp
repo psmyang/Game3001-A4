@@ -102,7 +102,7 @@ void Player::GetAttacked()
 	{
 		m_healthLevel -= 10;
 		if (m_healthLevel <= 0) {
-			SOMA::PlaySound("Explosion1", 0, 6);
+			SOMA::PlaySound("Death", 0, 6);
 			//TODO: Death Animation here
 			m_isDestroyed = true;
 			m_healthLevel = 0;

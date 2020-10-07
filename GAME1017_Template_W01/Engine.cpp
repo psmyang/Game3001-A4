@@ -8,19 +8,13 @@
 #include "StateManager.h"
 #include "TextureManager.h"
 #include <iostream>
-#include <ctime>
 
 #define WIDTH 1024
 #define HEIGHT 768
 #define FPS 60
 using namespace std;
 
-Engine::Engine():m_running(false)
-{
-	m_bRunning = m_bEBNull = m_bENull = m_bPBNull = false; // Setting all to false.
-	m_bCanShoot = true;
-	cout << "Engine class constructed!" << endl; 
-}
+Engine::Engine():m_running(false){ cout << "Engine class constructed!" << endl; }
 
 bool Engine::Init(const char* title, int xpos, int ypos, int width, int height, int flags)
 {
@@ -44,11 +38,14 @@ bool Engine::Init(const char* title, int xpos, int ypos, int width, int height, 
 		else return false; // Window init fail.
 	}
 	else return false; // SDL init fail.
-	FOMA::RegisterFont("img/playbill.ttf", "Lable", 55);
-	FOMA::RegisterFont("img/lazy.ttf", "tile", 25);
-	FOMA::RegisterFont("img/galaxy_1.ttf", "Instruct", 25);
-	TEMA::RegisterTexture("Img/play.png", "play");
-	TEMA::RegisterTexture("Img/pexels-photo-370799.png", "StartScene");
+	// Example specific initialization.
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2"); // Call this before any textures are created.
+	
+	FOMA::RegisterFont("img/ltype.ttf", "tile", 10);
+	FOMA::RegisterFont("img/ltype.ttf", "standard", 15);
+	FOMA::RegisterFont("img/Consolas.ttf", "UI", 30);
+	TEMA::RegisterTexture("Img/play.png", "playBut");
+	TEMA::RegisterTexture("Img/bgStart.png", "StartScene");
 	// Final engine initialization calls.
 	m_fps = (Uint32)round((1 / (double)FPS) * 1000); // Sets FPS in milliseconds and rounds.
 	STMA::ChangeState(new TitleState);
@@ -75,18 +72,11 @@ void Engine::HandleEvents()
 	EVMA::HandleEvents();
 }
 
-/* Update is SUPER way too long on purpose! Part of the Assignment 1, if you use
-   this program as a start project is to chop up Update and figure out where each
-   part of the code is supposed to go. A practice in OOP is to have objects handle
-   their own behaviour and this is a big hint for you. */
 void Engine::Update()
 {
 	STMA::Update();
 }
 
-/* In the render I commented out some lines that rendered the original destination rectangles
-   for the sprites so I can show you the after-effect of rotating via SDL_RenderCopyEX(). In
-   order to do collision, I manually created new rectangles for collision in the CheckCollision method. */
 void Engine::Render() 
 {
 	

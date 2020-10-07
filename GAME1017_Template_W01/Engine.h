@@ -17,12 +17,14 @@
 
 class Engine
 {
+public: // Public methods.
+	int Run();
+	static Engine& Instance(); // This static method creates the static instance that can be accessed 'globally'
+	SDL_Renderer* GetRenderer();
+	bool& Running();
+	std::array<std::array<Tile*, COLS>, ROWS>& GetLevel() { return m_level; }
+
 private: // Private properties.
-	bool m_bRunning, // Loop control flag.
-		m_bENull, // These three flags check if we need to clear the respective vectors of nullptrs.
-		m_bPBNull,
-		m_bEBNull,
-		m_bCanShoot; // This restricts the player from firing again unless they release the Spacebar.
 	bool m_running; // Loop control flag.
 	Uint32 m_start, m_end, m_delta, m_fps; // Fixed timestep variables.
 	SDL_Window* m_pWindow; // This represents the SDL window.
@@ -39,12 +41,6 @@ private: // Private methods.
 	void Update();
 	void Render();
 	void Clean();
-public: // Public methods.
-	int Run();
-	static Engine& Instance(); // This static method creates the static instance that can be accessed 'globally'
-	SDL_Renderer* GetRenderer();
-	bool& Running();
-	std::array<std::array<Tile*, COLS>, ROWS>& GetLevel() { return m_level; }
 };
 
 #endif

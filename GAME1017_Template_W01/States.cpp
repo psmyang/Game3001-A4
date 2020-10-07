@@ -4,6 +4,7 @@
 #include "Button.h"
 #include <iostream>
 #include <fstream>
+
 #include "CollisionManager.h"
 #include "DebugManager.h"
 #include "EventManager.h"
@@ -11,8 +12,9 @@
 #include "SoundManager.h"
 #include "TextureManager.h"
 #include "PathManager.h"
-using namespace std;
+#include <ctime>
 
+using namespace std;
 // Begin State. CTRL+M+H and CTRL+M+U to turn on/off collapsed code.
 void State::Render()
 {
@@ -32,23 +34,26 @@ void GameState::Enter()
 	m_pTileText = IMG_LoadTexture(Engine::Instance().GetRenderer(), "Img/Tiles.png");
 	m_pPlayerText = IMG_LoadTexture(Engine::Instance().GetRenderer(), "Img/Maga.png");
 	m_pEnemyText = IMG_LoadTexture(Engine::Instance().GetRenderer(), "Img/Enemies.png");
+	m_pCircleText = IMG_LoadTexture(Engine::Instance().GetRenderer(), "Img/Circle.png");
 	m_pBulletText = IMG_LoadTexture(Engine::Instance().GetRenderer(), "Img/Enemies.png");
 
-	SOMA::Load("Aud/luffy_fierce_attack.mp3", "PlaySceneBGM", SOUND_MUSIC);
-	SOMA::Load("Aud/Explosion+1.wav", "Explosion", SOUND_SFX);
-	SOMA::Load("Aud/Explosion+3.wav", "Explosion1", SOUND_SFX);
-	SOMA::Load("Aud/power.wav", "beep", SOUND_SFX);
-	
+	SOMA::Load("Aud/adventure.wav", "adventure", SOUND_MUSIC);
+	SOMA::Load("Aud/boom.wav", "Boom", SOUND_SFX);
+	SOMA::Load("Aud/death.wav", "Death", SOUND_SFX);
+	SOMA::Load("Aud/Click.wav", "Click", SOUND_SFX);
+	SOMA::Load("Aud/PressM.wav", "PressM", SOUND_SFX);
+	SOMA::Load("Aud/PressR.wav", "PressR", SOUND_SFX);
+	SOMA::Load("Aud/PressF.wav", "PressF", SOUND_SFX);
+	SOMA::Load("Aud/PressH.mp3", "PressH", SOUND_SFX);
+
 	SOMA::SetMusicVolume(15);
-	SOMA::PlayMusic("PlaySceneBGM", -1, 3000);
-	
-	SDL_Color textColor = { 250, 500, 100, 225 }; 
-	
-	m_pInstruct[0] = new Label("Instruct", 250, 665, "Press 1 to reset the the play scene", textColor);
-	m_pInstruct[1] = new Label("Instruct", 250, 685, "Press H to toggle the Debug view", textColor); 
-	m_pInstruct[2] = new Label("Instruct", 250, 705, "Press Spacebar to fire the bullet", textColor);
-	m_pInstruct[3] = new Label("Lable", 100, 35, "Health: ", textColor);
-	m_pInstruct[4] = new Label("Lable", 500, 35, "Enemy: ", textColor);
+	SOMA::PlayMusic("adventure", -1, 3000);
+
+	SDL_Color textColor = { 250, 250, 250, 250 };
+
+	m_pInstruct[0] = new Label("standard", 380, 40, "Press R to restart the play scene", textColor);
+	m_pInstruct[1] = new Label("standard", 380, 55, "Press H to toggle the Debug view", textColor);
+	m_pInstruct[2] = new Label("standard", 380, 70, "Press P to toggle idle/patrol mode of enemies ", textColor);
 
 	// Add player 
 	m_pPlayer = new Player({ 0,0,32,32 }, { (float)(16) * 32, (float)(12) * 32, 32, 32 }, Engine::Instance().GetRenderer(), m_pPlayerText, 0, 0, 0, 4);
@@ -60,7 +65,7 @@ void GameState::Enter()
 	m_enemies.push_back(new CloseCombatEnemy({ 0,0,40,57 }, { (float)(23) * 32, (float)(15) * 32, 32, 32 }, Engine::Instance().GetRenderer(), m_pEnemyText, 0, 0, 0, 4, 270.0f, -1, 0, m_pPlayer->GetDstP(), m_pPlayer));
 
 	// Add bullet
-	m_pBullet = new Bullet({ 0,439,9,29 }, { (float)(86) * 32, (float)(32) * 32, 32, 32 }, Engine::Instance().GetRenderer(), m_pBulletText, 0, 0, 0, 4);
+	m_pBullet = new Bullet({ 0,439,9,29 }, { (float)(16) * 32, (float)(12) * 32, 32, 32 }, Engine::Instance().GetRenderer(), m_pBulletText, 0, 0, 0, 4);
 
 	ifstream inFile("Dat/Tiledata.txt");
 	if (inFile.is_open())
@@ -101,16 +106,36 @@ void GameState::Enter()
 	}
 	inFile.close();
 	// Now build the graph from ALL the non-obstacle and non-hazard tiles. Only N-E-W-S compass points.
-	
+	for (int row = 0; row < ROWS; row++)
+	{
+		for (int col = 0; col < COLS; col++)
+		{
+			if (Engine::Instance().GetLevel()[row][col]->Node() == nullptr) // Now we can test for nullptr.
+				continue; // An obstacle or hazard tile has no connections.
+			// Make valid connections. Inside map and a valid tile.
+			if (row - 1 != -1 && Engine::Instance().GetLevel()[row - 1][col]->Node() != nullptr) // Tile above. 
+				Engine::Instance().GetLevel()[row][col]->Node()->AddConnection(new PathConnection(Engine::Instance().GetLevel()[row][col]->Node(), Engine::Instance().GetLevel()[row - 1][col]->Node(),
+					MAMA::Distance(Engine::Instance().GetLevel()[row][col]->Node()->x, Engine::Instance().GetLevel()[row - 1][col]->Node()->x, Engine::Instance().GetLevel()[row][col]->Node()->y, Engine::Instance().GetLevel()[row - 1][col]->Node()->y)));
+			if (row + 1 != ROWS && Engine::Instance().GetLevel()[row + 1][col]->Node() != nullptr) // Tile below.
+				Engine::Instance().GetLevel()[row][col]->Node()->AddConnection(new PathConnection(Engine::Instance().GetLevel()[row][col]->Node(), Engine::Instance().GetLevel()[row + 1][col]->Node(),
+					MAMA::Distance(Engine::Instance().GetLevel()[row][col]->Node()->x, Engine::Instance().GetLevel()[row + 1][col]->Node()->x, Engine::Instance().GetLevel()[row][col]->Node()->y, Engine::Instance().GetLevel()[row + 1][col]->Node()->y)));
+			if (col - 1 != -1 && Engine::Instance().GetLevel()[row][col - 1]->Node() != nullptr) // Tile to Left.
+				Engine::Instance().GetLevel()[row][col]->Node()->AddConnection(new PathConnection(Engine::Instance().GetLevel()[row][col]->Node(), Engine::Instance().GetLevel()[row][col - 1]->Node(),
+					MAMA::Distance(Engine::Instance().GetLevel()[row][col]->Node()->x, Engine::Instance().GetLevel()[row][col - 1]->Node()->x, Engine::Instance().GetLevel()[row][col]->Node()->y, Engine::Instance().GetLevel()[row][col - 1]->Node()->y)));
+			if (col + 1 != COLS && Engine::Instance().GetLevel()[row][col + 1]->Node() != nullptr) // Tile to right.
+				Engine::Instance().GetLevel()[row][col]->Node()->AddConnection(new PathConnection(Engine::Instance().GetLevel()[row][col]->Node(), Engine::Instance().GetLevel()[row][col + 1]->Node(),
+					MAMA::Distance(Engine::Instance().GetLevel()[row][col]->Node()->x, Engine::Instance().GetLevel()[row][col + 1]->Node()->x, Engine::Instance().GetLevel()[row][col]->Node()->y, Engine::Instance().GetLevel()[row][col + 1]->Node()->y)));
+		}
+	}
 }
 
 void GameState::Update()
 {
 
 	// Reset the scene
-	if (EVMA::KeyPressed(SDL_SCANCODE_1))
+	if (EVMA::KeyPressed(SDL_SCANCODE_R))
 	{
-		SOMA::PlaySound("beep", 0, 1);
+		SOMA::PlaySound("PressR", 0, 1);
 		cout << "Reset Game State" << endl;
 		STMA::PushState(new GameState);
 	}
@@ -124,16 +149,28 @@ void GameState::Update()
 		for (auto it = m_enemies.begin(); it != m_enemies.end(); ++it) {
 			(*it)->SetDebugMode(m_showCosts);
 		}
-		SOMA::PlaySound("beep", 0, 3);
+		SOMA::PlaySound("PressH", 0, 3);
 	}
 
 	if (1)
 	{
-			if (EVMA::KeyPressed(SDL_SCANCODE_SPACE)) 
+		if (EVMA::KeyPressed(SDL_SCANCODE_SPACE)) // Toggle the heuristic used for pathfinding.
+		{
+			m_hEuclid = !m_hEuclid;
+			std::cout << "Setting " << (m_hEuclid ? "Euclidian" : "Manhattan") << " heuristic..." << std::endl;
+		}
+		if (EVMA::MousePressed(1) || EVMA::MousePressed(3)) // If user has clicked.
+		{
+
+			if (EVMA::MousePressed(1)) // Move the player with left-click.
 			{
+				//m_pPlayer->GetDstP()->x = (float)(xIdx * 32);
+				//m_pPlayer->GetDstP()->y = (float)(yIdx * 32);
 				m_pBullet->Shoot({ (int)(m_pPlayer->GetDstP()->x + m_pPlayer->GetDstP()->w / 2) , (int)(m_pPlayer->GetDstP()->y + m_pPlayer->GetDstP()->h / 2) }, m_pPlayer->GetDirection());
-				SOMA::PlaySound("beep", 0, 4);
+				SOMA::PlaySound("Click", 0, 4);
 			}
+
+		}
 	}
 	m_pPlayer->Update(); // Just stops MagaMan from moving.
 
@@ -165,11 +202,25 @@ void GameState::Render()
 		for (int col = 0; col < COLS; col++)
 		{
 			Engine::Instance().GetLevel()[row][col]->Render(); // Render each tile.
-			
+			// Render the debug data...
+#if 0
+			if (m_showCosts && Engine::Instance().GetLevel()[row][col]->Node() != nullptr)
+			{
+				Engine::Instance().GetLevel()[row][col]->m_lCost->Render();
+				Engine::Instance().GetLevel()[row][col]->m_lX->Render();
+				Engine::Instance().GetLevel()[row][col]->m_lY->Render();
+				// I am also rendering out each connection in blue. If this is a bit much for you, comment out the for loop below.
+				for (unsigned i = 0; i < Engine::Instance().GetLevel()[row][col]->Node()->GetConnections().size(); i++)
+				{
+					DEMA::QueueLine({ Engine::Instance().GetLevel()[row][col]->Node()->GetConnections()[i]->GetFromNode()->x + 16,Engine::Instance().GetLevel()[row][col]->Node()->GetConnections()[i]->GetFromNode()->y + 16 },
+						{ Engine::Instance().GetLevel()[row][col]->Node()->GetConnections()[i]->GetToNode()->x + 16, Engine::Instance().GetLevel()[row][col]->Node()->GetConnections()[i]->GetToNode()->y + 16 }, { 0,0,255,255 });
+				}
+			}
+#endif
 		}
 	}
-	
-	for (int i = 0; i < 5; i++)
+
+	for (int i = 0; i < 3; i++)
 	{
 		m_pInstruct[i]->Render();
 	}
@@ -181,8 +232,8 @@ void GameState::Render()
 		return;
 	}
 
-	DrawHealthBar({ 200, 50, 130, 35 }, m_pPlayer->getHealthLevel());
-	
+	DrawHealthBar({ (int)m_pPlayer->GetDstP()->x - 16, (int)m_pPlayer->GetDstP()->y - 16, 64,16 }, m_pPlayer->getHealthLevel());
+
 	auto it = m_enemies.begin();
 	while (it != m_enemies.end()) {
 		if ((*it)->IsDestroyed())
@@ -197,7 +248,7 @@ void GameState::Render()
 			continue;
 		}
 		(*it)->Render();
-		DrawHealthBar({ 600, 50, 130, 35 }, (*it)->getHealthLevel());
+		DrawHealthBar({ (int)(*it)->GetDstP()->x - 16, (int)(*it)->GetDstP()->y - 16, 64,16 }, (*it)->getHealthLevel());
 		++it;
 	}
 
@@ -251,13 +302,13 @@ void GameState::Resume() {}
 
 void GameState::GameOver(bool PlayerWin)
 {
-	SDL_Color darkBlue = { 0, 0, 255, 0 };
+	SDL_Color textColor = { 200, 0, 0, 0 };
 	if (PlayerWin) {
-		m_GameOverLabel = new Label("Lable", 430, 400, "Win!", darkBlue);
+		m_GameOverLabel = new Label("UI", 430, 500, "You Win!!!", textColor);
 	}
 	else
 	{
-		m_GameOverLabel = new Label("Lable", 430, 400, "Lose!", darkBlue);
+		m_GameOverLabel = new Label("UI", 430, 500, "You Lose!!!", textColor);
 	}
 	m_isGameOver = true;
 }
@@ -301,24 +352,19 @@ TitleState::TitleState() {}
 
 void TitleState::Enter()
 {
-	SOMA::Load("Aud/startScreen.mp3", "StartSceneMusic", SOUND_MUSIC);
-	SOMA::SetMusicVolume(30);
-	SOMA::PlayMusic("StartSceneMusic", -1, 3000);
-
-	SDL_Color purple = { 255, 0, 255, 0 };
+	SDL_Color black = { 0, 0, 0, 0 };
 	
-	m_pNameLabel = new Label("Lable", 325, 140, "Mingkun Yang 101235517", purple);
-	
+	m_pNameLabel = new Label("UI", 240, 90, "Mingkun Yang (ID: 101235517)", black);
+	m_playBtn = new PlayButton({ 0,0,400,100 }, { 320,320,400,80 }, Engine::Instance().GetRenderer(), TEMA::GetTexture("playBut"));
 	m_pGameStart = new Sprite({ 0,0, 700, 600 }, { 0,0,1024, 768 }, Engine::Instance().GetRenderer(), TEMA::GetTexture("StartScene"));
-	m_playBtn = new PlayButton({ 0,0,400,100 }, { 312.0f,320.0f,400.0f,100.0f }, Engine::Instance().GetRenderer(), TEMA::GetTexture("play"));
-	SOMA::PlaySound("beep", 0, 4);
 	
-	
+	SOMA::Load("Aud/opening.mp3", "Opening", SOUND_MUSIC);
+	SOMA::SetMusicVolume(15);
+	SOMA::PlayMusic("Opening", -1, 3000);
 }
 void TitleState::Update()
 {
 	if (m_playBtn->Update() == 1)
-		
 		return;
 }
 
@@ -331,7 +377,6 @@ void TitleState::Render()
 	//m_pStartLabel->Render();
 	m_pGameStart->Render();
 	m_pNameLabel->Render();
-	
 	m_playBtn->Render();
 	State::Render();
 }
